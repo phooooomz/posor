@@ -6,11 +6,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "src/**"
-      - "extern/**"
-      - "CMakeLists.txt"
-      - ".github/workflows/nanosaur-web.yml"
 
 permissions:
   contents: read
@@ -21,12 +16,26 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout source with submodules
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Install system dependencies
+      - name: Ensure Pomme exists
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+          if [ ! -f extern/Pomme/CMakeLists.txt ]; then
+            rm -rf extern/Pomme
+            git clone --depth 1 https://github.com/jorio/Pomme.git extern/Pomme
+          fi
+
+          test -f extern/Pomme/CMakeLists.txt
+          echo "Pomme is ready"
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build
@@ -34,34 +43,31 @@ jobs:
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
 
-      - name: Show tool versions
+      - name: Verify environment
         run: |
           emcc --version
           cmake --version
-          git submodule status
+          ls extern/Pomme
 
-      - name: Configure Web build
+      - name: Configure
         run: |
           emcmake cmake -S . -B build-web -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DCMAKE_C_FLAGS="-sUSE_SDL=2" \
-            -DCMAKE_CXX_FLAGS="-sUSE_SDL=2" \
-            -DCMAKE_EXE_LINKER_FLAGS="-sUSE_SDL=2 -sFULL_ES2=1 -sALLOW_MEMORY_GROWTH=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2"
+            -DCMAKE_CXX_STANDARD=20
 
-      - name: Build Nanosaur
+      - name: Build
         run: |
           cmake --build build-web --target Nanosaur -- -v
 
-      - name: Collect build files
+      - name: Collect artifacts
         if: always()
         run: |
           mkdir -p web-artifacts
           cp -r build-web/* web-artifacts/ 2>/dev/null || true
-          cp CMakeCache.txt web-artifacts/ 2>/dev/null || true
-          find web-artifacts -maxdepth 4 -type f | head -200
+          cp -r Data web-artifacts/ 2>/dev/null || true
+          find web-artifacts -maxdepth 4 -type f
 
-      - name: Upload build logs and artifacts
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
