@@ -60,8 +60,14 @@ set(POMME_NO_MP3 true)
 
 add_subdirectory(extern/Pomme)
 
-find_package(SDL2 REQUIRED COMPONENTS main)
-find_package(OpenGL REQUIRED)
+if(EMSCRIPTEN)
+    # SDL is provided by Emscripten ports.
+    set(SDL2_INCLUDE_DIRS "")
+    set(SDL2_LIBRARIES "")
+else()
+    find_package(SDL2 REQUIRED COMPONENTS main)
+    find_package(OpenGL REQUIRED)
+endif()
 
 #------------------------------------------------------------------------------
 # GAME SOURCES
@@ -88,11 +94,14 @@ source_group(TREE ${GAME_SRCDIR} PREFIX "" FILES ${GAME_ALL_SOURCES})
 # EXECUTABLE TARGET
 #------------------------------------------------------------------------------
 
-set(GAME_LIBRARIES
-	Pomme
-	${SDL2_LIBRARIES}
-	OpenGL::GL
-)
+set(GAME_LIBRARIES Pomme)
+
+if(NOT EMSCRIPTEN)
+    list(APPEND GAME_LIBRARIES
+        ${SDL2_LIBRARIES}
+        OpenGL::GL
+    )
+endif()
 
 if(WIN32)
 	# "WIN32" here is equivalent to /SUBSYSTEM:WINDOWS for MSVC
@@ -192,6 +201,20 @@ else()
 endif()
 
 target_link_libraries(${GAME_TARGET} ${GAME_LIBRARIES})
+
+if(EMSCRIPTEN)
+    target_link_options(${GAME_TARGET} PRIVATE
+        "-sUSE_SDL=2"
+        "-sFULL_ES2=1"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sMIN_WEBGL_VERSION=2"
+        "-sMAX_WEBGL_VERSION=2"
+    )
+
+    set_target_properties(${GAME_TARGET} PROPERTIES
+        SUFFIX ".html"
+    )
+endif()
 
 #------------------------------------------------------------------------------
 # PLATFORM-SPECIFIC PACKAGING
