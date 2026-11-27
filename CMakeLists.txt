@@ -216,6 +216,8 @@ if(EMSCRIPTEN)
     target_link_options(${GAME_TARGET} PRIVATE
         "-sUSE_SDL=2"
         "-sFULL_ES2=1"
+        # The renderer uses fixed-function GL (glLightfv, glFogf, ...), which WebGL lacks.
+        "-sLEGACY_GL_EMULATION=1"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sMIN_WEBGL_VERSION=2"
         "-sMAX_WEBGL_VERSION=2"
