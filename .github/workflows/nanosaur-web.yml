@@ -21,6 +21,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Ensure Pomme exists
+        run: |
+          if [ ! -f extern/Pomme/CMakeLists.txt ]; then
+            rm -rf extern/Pomme
+            git clone --depth 1 https://github.com/jorio/Pomme.git extern/Pomme
+          fi
+          test -f extern/Pomme/CMakeLists.txt
+          echo "Pomme is ready"
+
       - name: Install tools
         run: |
           sudo apt-get update
