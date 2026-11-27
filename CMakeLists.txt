@@ -58,6 +58,16 @@ set(POMME_NO_MP3 true)
 # DEPENDENCIES
 #------------------------------------------------------------------------------
 
+if(EMSCRIPTEN)
+    # Current Pomme requires SDL3 for its input/sound modules; this game uses SDL2
+    # on the web, so build Pomme without them (the game does not use them directly).
+    set(POMME_NO_INPUT true)
+    set(POMME_NO_SOUND_MIXER true)
+
+    # SDL headers must be provided by the Emscripten SDL2 port at compile time too.
+    add_compile_options("-sUSE_SDL=2")
+endif()
+
 add_subdirectory(extern/Pomme)
 
 if(EMSCRIPTEN)
@@ -209,6 +219,8 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1"
         "-sMIN_WEBGL_VERSION=2"
         "-sMAX_WEBGL_VERSION=2"
+        # Bundle game assets into the .data file; the game loads them from "Data/" at runtime.
+        "--preload-file=${CMAKE_CURRENT_SOURCE_DIR}/Data@Data"
     )
 
     set_target_properties(${GAME_TARGET} PROPERTIES
