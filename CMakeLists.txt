@@ -58,6 +58,13 @@ set(POMME_NO_MP3 true)
 # DEPENDENCIES
 #------------------------------------------------------------------------------
 
+if(EMSCRIPTEN)
+    # Current Pomme requires SDL3 for its input/sound modules; this game uses SDL2
+    # on the web, so build Pomme without them (the game does not use them directly).
+    set(POMME_NO_INPUT true)
+    set(POMME_NO_SOUND_MIXER true)
+endif()
+
 add_subdirectory(extern/Pomme)
 
 if(EMSCRIPTEN)
