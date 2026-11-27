@@ -1,0 +1,20 @@
+# External libraries
+extern/SDL*
+
+# Downloaded library cache
+cache/
+
+# Build directories
+/build*/
+/cmake-build*/
+/dist/
+/out/
+
+# IDEs
+.vs/
+/.vscode
+/.idea
+
+# macOS metadata
+.DS_Store
+
