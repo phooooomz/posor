@@ -63,6 +63,9 @@ if(EMSCRIPTEN)
     # on the web, so build Pomme without them (the game does not use them directly).
     set(POMME_NO_INPUT true)
     set(POMME_NO_SOUND_MIXER true)
+
+    # SDL headers must be provided by the Emscripten SDL2 port at compile time too.
+    add_compile_options("-sUSE_SDL=2")
 endif()
 
 add_subdirectory(extern/Pomme)
