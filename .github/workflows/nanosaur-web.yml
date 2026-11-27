@@ -1,4 +1,3 @@
-
 name: Nanosaur WebAssembly Build
 
 on:
@@ -22,19 +21,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Ensure Pomme exists
-        run: |
-          git submodule sync --recursive
-          git submodule update --init --recursive
-
-          if [ ! -f extern/Pomme/CMakeLists.txt ]; then
-            rm -rf extern/Pomme
-            git clone --depth 1 https://github.com/jorio/Pomme.git extern/Pomme
-          fi
-
-          test -f extern/Pomme/CMakeLists.txt
-          echo "Pomme is ready"
-
       - name: Install tools
         run: |
           sudo apt-get update
@@ -43,58 +29,28 @@ jobs:
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
 
-      - name: Prepare SDL3 CMake shim
-        run: |
-          mkdir -p cmake/emscripten-sdl3
-
-          cat > cmake/emscripten-sdl3/SDL3Config.cmake <<'EOF'
-          if(NOT TARGET SDL3::SDL3)
-            add_library(SDL3::SDL3 INTERFACE IMPORTED)
-            set_target_properties(SDL3::SDL3 PROPERTIES
-              INTERFACE_COMPILE_OPTIONS "-sUSE_SDL=3"
-              INTERFACE_LINK_OPTIONS "-sUSE_SDL=3"
-            )
-          endif()
-
-          set(SDL3_FOUND TRUE)
-          set(SDL3_VERSION 3.0.0)
-          EOF
-
       - name: Verify tools
         run: |
           emcc --version
           cmake --version
           git submodule status
 
-        - name: Create SDL header compatibility shim
-        run: |
-          mkdir -p cmake/emscripten-sdl3/include
-
-          cat > cmake/emscripten-sdl3/include/SDL.h <<'EOF'
-          #include <SDL3/SDL.h>
-          EOF
-
       - name: Configure Web build
         run: |
           emcmake cmake -S . -B build-web -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DSDL3_DIR="${GITHUB_WORKSPACE}/cmake/emscripten-sdl3" \
-            -DCMAKE_C_FLAGS="-sUSE_SDL=3 -I${GITHUB_WORKSPACE}/cmake/emscripten-sdl3/include" \
-            -DCMAKE_CXX_FLAGS="-sUSE_SDL=3 -I${GITHUB_WORKSPACE}/cmake/emscripten-sdl3/include" \
-            -DCMAKE_EXE_LINKER_FLAGS="-sUSE_SDL=3 -sFULL_ES2=1 -sALLOW_MEMORY_GROWTH=1 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2"
-      
+            -DCMAKE_CXX_STANDARD=20
+
       - name: Build Nanosaur
         run: |
-          cmake --build build-web --target Nanosaur -- -v
+          cmake --build build-web --target Nanosaur
 
       - name: Collect artifacts
         if: always()
         run: |
           mkdir -p web-artifacts
-          cp -r build-web/* web-artifacts/ 2>/dev/null || true
-          cp -r Data web-artifacts/ 2>/dev/null || true
-          find web-artifacts -maxdepth 4 -type f
+          cp build-web/Nanosaur.html build-web/Nanosaur.js build-web/Nanosaur.wasm build-web/Nanosaur.data web-artifacts/ 2>/dev/null || true
+          find web-artifacts -maxdepth 2 -type f
 
       - name: Upload artifacts
         if: always()
